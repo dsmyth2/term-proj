@@ -13,6 +13,9 @@ def extract_email_content(email_file):
     return subject, from_address, body
 
 import re
+import requests
+
+API_KEY = 'AIzaSyBmX8ExXczejoyMXNsCB_kcyFMTnkLZRQM'
 
 def extract_links(body):
     urls = re.findall(r'(https?://\S+)', body)
@@ -25,9 +28,31 @@ def check_suspicious_links(urls):
     return False
 
 def is_untrusted_domain(url):
-    # Dummy check for demonstration
-    trusted_domains = ['example.com', 'paypal.com']
-    return not any(domain in url for domain in trusted_domains)
+    # google safe browsing api
+    endpoint = "https://safebrowsing.googleapis.com/v4/threatMatches:find"
+    payload = {
+        "client": {
+            "clientId": "phishing_scan",
+            "clientVersion": "1.0.0"
+        },
+        "threatInfo": {
+            "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED SOFTWARE"],
+            "platformTypes": ["ANY_PLATFORM"],
+            "threatEntryTypes": ["URL"],
+            "threatEntries": [{"url": url}]
+        }
+    }
+
+    headers = {"Content-Type": "application/json"}
+    params = {"key": API_KEY}
+    
+    response = requests.post(endpoint, json=payload, headers=headers, params=params)
+    if response.status_code == 200:
+        threats = response.json().get("matches", [])
+        return len(threats) > 0  # True if any threats found
+    else:
+        print(f"Error querying Safe Browsing API: {response.status_code}")
+        return False
 
 from nltk import word_tokenize
 from nltk.corpus import stopwords
@@ -48,4 +73,6 @@ def scan_email_for_phishing(email_file):
         
     if detect_phishing_phrases(body):
         return("Urgent or phishing language detected!")
+    
+    return("No obvious threat detected.")
         
