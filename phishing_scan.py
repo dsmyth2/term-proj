@@ -36,7 +36,7 @@ def is_untrusted_domain(url):
             "clientVersion": "1.0.0"
         },
         "threatInfo": {
-            "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED SOFTWARE"],
+            "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE", "POTENTIALLY_HARMFUL_APPLICATION"],
             "platformTypes": ["ANY_PLATFORM"],
             "threatEntryTypes": ["URL"],
             "threatEntries": [{"url": url}]
@@ -47,6 +47,7 @@ def is_untrusted_domain(url):
     params = {"key": API_KEY}
     
     response = requests.post(endpoint, json=payload, headers=headers, params=params)
+    print(f"API Response: {response.json()}")
     if response.status_code == 200:
         threats = response.json().get("matches", [])
         return len(threats) > 0  # True if any threats found
@@ -68,6 +69,9 @@ def scan_email_for_phishing(email_file):
     subject, from_address, body = extract_email_content(email_file)
     urls = extract_links(body)
     
+    if check_suspicious_links(urls) and detect_phishing_phrases(body):
+        return("Suspicious links AND urgent or phishing language detected!")
+
     if check_suspicious_links(urls):
         return("Suspicious links found!")
         
